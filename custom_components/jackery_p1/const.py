@@ -1,0 +1,7 @@
+"""Constants for local Jackery P1 communication."""
+DOMAIN = "jackery_p1"
+SERVICE_UUID = "0000bdee-0000-1000-8000-00805f9b34fb"
+WRITE_UUID = "0000ee01-0000-1000-8000-00805f9b34fb"
+NOTIFY_UUID = "0000ee02-0000-1000-8000-00805f9b34fb"
+CONF_BLUETOOTH_KEY = "bluetooth_key"
+POLL_SECONDS = 5
