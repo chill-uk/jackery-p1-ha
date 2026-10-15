@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect Jackery P1",
+        "description": "Enter the device-specific Bluetooth AES key. It stays in your Home Assistant configuration.",
+        "data": {
+          "address": "Bluetooth address",
+          "bluetooth_key": "Bluetooth key (Base64)"
+        }
+      }
+    },
+    "error": {
+      "invalid_key": "Invalid Base64 AES key"
+    },
+    "abort": {
+      "already_configured": "Device already configured",
+      "not_supported": "Not a Jackery P1 device"
+    }
+  }
+}
