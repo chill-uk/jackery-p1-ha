@@ -10,7 +10,7 @@ from homeassistant.components import bluetooth
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from .const import DOMAIN, WRITE_UUID, NOTIFY_UUID, POLL_SECONDS
-from .protocol import Reassembler, decrypt_frame, read_info_packet
+from .protocol import READ_COMMANDS, Reassembler, decrypt_frame, read_command_packet
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,12 +22,13 @@ class JackeryP1Coordinator(DataUpdateCoordinator[dict]):
         self._client: BleakClient | None = None
         self._lock = asyncio.Lock()
         self._reply: asyncio.Future[dict] | None = None
+        self._expected: tuple[int, int] | None = None
         self._parser = Reassembler()
 
     def _notification(self, _sender: object, raw: bytearray) -> None:
         try:
             message = self._parser.add(decrypt_frame(self._key, bytes(raw)))
-            if message is None or message["actionId"] != 4005 or message["bleMsgType"] != 106:
+            if message is None or self._expected != (message["actionId"], message["bleMsgType"]):
                 return
             reply = self._reply
             if reply is not None and not reply.done() and isinstance(message["body"], dict):
@@ -53,24 +54,30 @@ class JackeryP1Coordinator(DataUpdateCoordinator[dict]):
         self._parser = Reassembler()
         return client
 
-    async def _async_update_data(self) -> dict:
+    async def async_read_command(self, command: str) -> dict:
+        action, kind = READ_COMMANDS[command]
         async with self._lock:
             try:
                 client = await self._connect()
-                packet = read_info_packet(self._key)
+                packet = read_command_packet(self._key, command)
                 char = client.services.get_characteristic(WRITE_UUID)
                 if char is None or len(packet) > char.max_write_without_response_size:
                     raise BleakError("Encrypted request exceeds BLE write limit")
                 reply = asyncio.get_running_loop().create_future()
                 self._reply = reply
+                self._expected = (action, kind)
                 try:
                     await client.write_gatt_char(char, packet, response=False)
                     return await asyncio.wait_for(reply, timeout=8)
                 finally:
                     self._reply = None
+                    self._expected = None
             except (BleakError, OSError, asyncio.TimeoutError, ValueError) as err:
                 await self.async_disconnect()
                 raise UpdateFailed(f"P1 BLE query failed: {type(err).__name__}") from err
+
+    async def _async_update_data(self) -> dict:
+        return await self.async_read_command('read_device_info')
 
     async def async_disconnect(self) -> None:
         client, self._client = self._client, None
