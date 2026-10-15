@@ -35,3 +35,15 @@ If the integration has already been configured, remove and re-add it to select a
 ## Additional telemetry fields
 
 The integration now recognises the extended accessory data model: general voltage, frequency, power factor, apparent and reactive power (including phase variants), `enMask`, and the `l2*` secondary channel fields. **Optional sensors are created only when a field appears in the initial device response.** Fields not transmitted by the P1 are not fabricated. Optional values are labelled `(raw)` because their units/scaling have not been confirmed on P1 hardware. Restart or reload the integration after a firmware change if it begins reporting new fields. The shared model is not evidence that every P1 firmware emits those values.
+
+## Read-only BLE actions
+
+Home Assistant exposes the response-capable actions `jackery_p1.read_wifi`, `jackery_p1.read_timezone`, and `jackery_p1.read_device_info`. These use the same BLE connection and key as the polling coordinator, and polling and manual reads are serialized. Each action requires the Home Assistant integration configuration `entry_id` (not the P1 MAC address):
+
+```yaml
+action: jackery_p1.read_wifi
+data:
+  entry_id: YOUR_HOME_ASSISTANT_CONFIG_ENTRY_ID
+```
+
+In **Developer Tools → Actions**, select the action and inspect its response. Wi-Fi and other credential-like fields are redacted in service responses. A time-out may mean the P1 firmware does not implement that particular command; it does not mean the device is disconnected. No BLE configuration write actions are exposed. The actions have not yet been tested against the actual P1 through Home Assistant.
