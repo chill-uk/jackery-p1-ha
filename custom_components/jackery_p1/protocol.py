@@ -40,10 +40,16 @@ def decrypt_frame(key: bytes, packet: bytes) -> bytes:
         raise ValueError("Invalid DFED signature or CRC")
     return clear[2:-4]
 
-def read_info_packet(key: bytes) -> bytes:
-    body = b'{"cmd":106}'
-    frame = bytes.fromhex("DFED") + b"".join(n.to_bytes(2, "big") for n in (1, 1, 4005, 106, len(body))) + body
+READ_COMMANDS = {"read_wifi": (4001, 1), "read_timezone": (4004, 22), "read_device_info": (4005, 106)}
+
+def read_command_packet(key: bytes, command: str) -> bytes:
+    action, kind = READ_COMMANDS[command]
+    body = json.dumps({"cmd": kind}, separators=(",", ":")).encode()
+    frame = bytes.fromhex("DFED") + b"".join(x.to_bytes(2, "big") for x in (1, 1, action, kind, len(body))) + body
     return encrypt_frame(key, frame)
+
+def read_info_packet(key: bytes) -> bytes:
+    return read_command_packet(key, "read_device_info")
 
 class Reassembler:
     def __init__(self) -> None:
