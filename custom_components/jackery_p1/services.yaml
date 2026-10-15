@@ -1,0 +1,28 @@
+read_wifi:
+  name: Read Wi-Fi details
+  description: Send the known read-only BLE Wi-Fi information command. Potential credential fields are redacted.
+  fields:
+    entry_id:
+      name: Config entry ID
+      description: ID of the configured Jackery P1 integration entry
+      required: true
+      selector:
+        text:
+read_timezone:
+  name: Read time zone
+  description: Send the known read-only BLE time-zone command.
+  fields:
+    entry_id:
+      name: Config entry ID
+      required: true
+      selector:
+        text:
+read_device_info:
+  name: Read device information
+  description: Send the known read-only BLE device telemetry command.
+  fields:
+    entry_id:
+      name: Config entry ID
+      required: true
+      selector:
+        text:
