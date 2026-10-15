@@ -18,3 +18,7 @@ During configuration, choose **Jackery account**, enter the email, password and 
 Alternatively, choose **Existing Bluetooth key** and enter it manually. For manual setup, you need the BLE address from Home Assistant's Bluetooth integration; macOS CoreBluetooth identifiers are not portable to Home Assistant.
 
 If the integration has already been configured, remove and re-add it to select a different setup method. Login has only been tested via the standalone Mac utility, not yet through Home Assistant.
+
+## Additional telemetry fields
+
+The integration now recognises the extended accessory data model: general voltage, frequency, power factor, apparent and reactive power (including phase variants), `enMask`, and the `l2*` secondary channel fields. **Optional sensors are created only when a field appears in the initial device response.** Fields not transmitted by the P1 are not fabricated. Optional values are labelled `(raw)` because their units/scaling have not been confirmed on P1 hardware. Restart or reload the integration after a firmware change if it begins reporting new fields. The shared model is not evidence that every P1 firmware emits those values.
