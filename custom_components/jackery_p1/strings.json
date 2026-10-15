@@ -2,20 +2,48 @@
   "config": {
     "step": {
       "user": {
-        "title": "Connect Jackery P1",
-        "description": "Enter the device-specific Bluetooth AES key. It stays in your Home Assistant configuration.",
+        "title": "Set up Jackery P1",
+        "description": "Choose how to obtain the device-specific Bluetooth key.",
+        "data": {
+          "method": "Setup method"
+        }
+      },
+      "manual": {
+        "title": "Enter Bluetooth key",
+        "description": "Use the Base64 key for your Jackery P1.",
         "data": {
           "address": "Bluetooth address",
           "bluetooth_key": "Bluetooth key (Base64)"
         }
+      },
+      "account": {
+        "title": "Sign in to Jackery",
+        "description": "Your account credentials are used once to retrieve your P1 Bluetooth key. Only the Bluetooth key is saved in Home Assistant.",
+        "data": {
+          "address": "Bluetooth address",
+          "email": "Jackery account email",
+          "password": "Jackery password",
+          "region": "Account country (ISO 2-letter code)"
+        }
+      },
+      "select_device": {
+        "title": "Select Jackery P1",
+        "data": {
+          "device": "Device"
+        }
       }
     },
     "error": {
-      "invalid_key": "Invalid Base64 AES key"
+      "invalid_key": "Invalid Base64 AES key",
+      "cannot_authenticate": "Could not sign in to Jackery. Check credentials, region, and network access.",
+      "cannot_get_devices": "Could not retrieve the Jackery device list.",
+      "no_p1_devices": "No bound Jackery P1 with a Bluetooth key was found."
     },
     "abort": {
       "already_configured": "Device already configured",
-      "not_supported": "Not a Jackery P1 device"
+      "not_supported": "Not a supported Jackery P1",
+      "invalid_address": "Bluetooth address is required",
+      "no_p1_devices": "No Jackery P1 devices found"
     }
   }
 }
