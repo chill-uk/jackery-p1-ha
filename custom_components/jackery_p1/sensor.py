@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from homeassistant.components import bluetooth
+from homeassistant.util import dt as dt_util
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -110,7 +112,7 @@ async def async_setup_entry(
     # Register all known fields so a later firmware response can populate them.
     # Unreported fields remain unavailable and are disabled in the registry.
     descriptions = (*BASE_SENSORS, *OPTIONAL_SENSORS)
-    async_add_entities(JackeryP1Sensor(coordinator, entry, desc) for desc in descriptions)
+    async_add_entities([*(JackeryP1Sensor(coordinator, entry, desc) for desc in descriptions), P1RSSI(coordinator, entry), P1LastUpdate(coordinator, entry)])
 
 
 class JackeryP1Sensor(CoordinatorEntity[JackeryP1Coordinator], SensorEntity):
@@ -146,3 +148,36 @@ class JackeryP1Sensor(CoordinatorEntity[JackeryP1Coordinator], SensorEntity):
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             return None
         return round(value * self.entity_description.multiplier, 3)
+
+class P1RSSI(CoordinatorEntity[JackeryP1Coordinator], SensorEntity):
+    _attr_has_entity_name = True
+    _attr_name = "Bluetooth signal strength"
+    _attr_native_unit_of_measurement = "dBm"
+    _attr_device_class = SensorDeviceClass.SIGNAL_STRENGTH
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: JackeryP1Coordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.unique_id}_bluetooth_rssi"
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, entry.unique_id or entry.entry_id)})
+
+    @property
+    def native_value(self) -> int | None:
+        return self.coordinator.rssi()
+
+
+class P1LastUpdate(CoordinatorEntity[JackeryP1Coordinator], SensorEntity):
+    _attr_has_entity_name = True
+    _attr_name = "Last successful update"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: JackeryP1Coordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.unique_id}_last_successful_update"
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, entry.unique_id or entry.entry_id)})
+
+    @property
+    def native_value(self):
+        return self.coordinator.last_success
