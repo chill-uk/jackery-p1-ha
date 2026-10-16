@@ -1,1 +1,7 @@
-{"name":"Jackery P1 (Local Bluetooth)","render_readme":true}
+{
+  "name": "Jackery P1 (Local Bluetooth)",
+  "render_readme": true,
+  "homeassistant": "2026.4.0",
+  "zip_release": true,
+  "filename": "jackery_p1.zip"
+}
