@@ -1,7 +1,7 @@
 {
   "domain": "jackery_p1",
   "name": "Jackery P1 (Local Bluetooth)",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "integration_type": "device",
   "config_flow": true,
   "dependencies": [
