@@ -1,7 +1,7 @@
 """Coordinator for encrypted Jackery P1 BLE polling."""
 from __future__ import annotations
 import asyncio
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 import logging
 from bleak import BleakClient
 from bleak.exc import BleakError
@@ -24,6 +24,15 @@ class JackeryP1Coordinator(DataUpdateCoordinator[dict]):
         self._reply: asyncio.Future[dict] | None = None
         self._expected: tuple[int, int] | None = None
         self._parser = Reassembler()
+        self.last_success: datetime | None = None
+
+    @property
+    def is_connected(self) -> bool:
+        return self._client is not None and self._client.is_connected
+
+    def rssi(self) -> int | None:
+        info = bluetooth.async_last_service_info(self.hass, self.address, connectable=True)
+        return info.rssi if info is not None else None
 
     def _notification(self, _sender: object, raw: bytearray) -> None:
         try:
@@ -68,7 +77,10 @@ class JackeryP1Coordinator(DataUpdateCoordinator[dict]):
                 self._expected = (action, kind)
                 try:
                     await client.write_gatt_char(char, packet, response=False)
-                    return await asyncio.wait_for(reply, timeout=8)
+                    result = await asyncio.wait_for(reply, timeout=8)
+                    if command == "read_device_info":
+                        self.last_success = datetime.now(timezone.utc)
+                    return result
                 finally:
                     self._reply = None
                     self._expected = None
