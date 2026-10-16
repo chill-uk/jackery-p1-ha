@@ -17,6 +17,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
 class P1Connection(CoordinatorEntity[JackeryP1Coordinator], BinarySensorEntity):
     _attr_has_entity_name = True
     _attr_name = "Bluetooth connected"
+    _attr_entity_registry_enabled_default = False
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
