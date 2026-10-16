@@ -47,3 +47,12 @@ data:
 ```
 
 In **Developer Tools → Actions**, select the action and inspect its response. Wi-Fi and other credential-like fields are redacted in service responses. A time-out may mean the P1 firmware does not implement that particular command; it does not mean the device is disconnected. No BLE configuration write actions are exposed. The actions have not yet been tested against the actual P1 through Home Assistant.
+
+## v0.2.0 sensor improvements
+
+- Renamed existing power sensors to **Total power** and **Phase N power** (unique IDs unchanged). Import/export sign has **not** yet been validated against DSMR.
+- Phase 2 and 3 entities are **disabled by default on first registration** when the first response indicates zero phase voltage. Existing entity-registry preferences are not overwritten; enable manually under the integration's entities if needed.
+- All extended fields in the decompiled accessory model are registered. If a field is missing from the firmware response, it is **disabled by default** and reports unavailable if enabled. A future firmware response can populate the sensor once enabled. Units for unverified fields remain raw.
+- Diagnostic entities: **Bluetooth signal strength** (RSSI from HA Bluetooth advertisements, may be unavailable when no advertisements are available), **Last successful update** (UTC timestamp of the latest successful telemetry query), and **Bluetooth connected** (whether the persistent client is currently connected).
+
+Note: Bluetooth connected is a transport-state diagnostic, not proof the P1 is publishing new measurements. Existing renamed entities may retain user-customized names. Restart Home Assistant after updating; this version is not yet runtime-tested on your HA instance.
