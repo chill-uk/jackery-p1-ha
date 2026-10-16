@@ -102,3 +102,17 @@ They use the same encrypted BLE transport and serialise access with normal polli
 ## License
 
 MIT
+
+## Diagnostic activity and optional electrical sensors
+
+The Bluetooth connection and last-successful-update diagnostics are disabled by default for **new registrations**, because a five-second timestamp update or frequent BLE reconnect can clutter Logbook. **Existing Home Assistant entity registry choices are preserved** when upgrading: disable these entities under **Settings → Devices & services → Entities**, or exclude their actual entity IDs from Logbook, for example:
+
+```yaml
+logbook:
+  exclude:
+    entities:
+      - sensor.jackery_smart_meter_p1_last_successful_update
+      - binary_sensor.jackery_smart_meter_p1_bluetooth_connected
+```
+
+Replace the example IDs with your actual entity IDs. Logbook exclusion hides activity but still allows the entities to report current values; Recorder/history is managed separately. Optional electrical measurements remain **normal measurement entities** rather than diagnostic entities, even when disabled or unavailable because the firmware does not report them.
