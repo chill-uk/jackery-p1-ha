@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from homeassistant.components import bluetooth
-from homeassistant.util import dt as dt_util
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -11,7 +9,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import EntityCategory
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -25,8 +23,6 @@ from .coordinator import JackeryP1Coordinator
 @dataclass(frozen=True, kw_only=True)
 class P1Description(SensorEntityDescription):
     multiplier: float = 1.0
-    optional: bool = False
-    inactive_phase: bool = False
 
 
 def _sensor(
@@ -35,8 +31,6 @@ def _sensor(
     unit: str | None = None,
     device_class: SensorDeviceClass | None = None,
     multiplier: float = 1.0,
-    optional: bool = False,
-    inactive_phase: bool = False,
 ) -> P1Description:
     return P1Description(
         key=key,
@@ -45,8 +39,6 @@ def _sensor(
         device_class=device_class,
         state_class=SensorStateClass.MEASUREMENT,
         multiplier=multiplier,
-        optional=optional,
-        inactive_phase=inactive_phase,
     )
 
 
