@@ -9,6 +9,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
+from homeassistant.const import EntityCategory
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -22,6 +23,8 @@ from .coordinator import JackeryP1Coordinator
 @dataclass(frozen=True, kw_only=True)
 class P1Description(SensorEntityDescription):
     multiplier: float = 1.0
+    optional: bool = False
+    inactive_phase: bool = False
 
 
 def _sensor(
@@ -30,6 +33,8 @@ def _sensor(
     unit: str | None = None,
     device_class: SensorDeviceClass | None = None,
     multiplier: float = 1.0,
+    optional: bool = False,
+    inactive_phase: bool = False,
 ) -> P1Description:
     return P1Description(
         key=key,
@@ -38,14 +43,16 @@ def _sensor(
         device_class=device_class,
         state_class=SensorStateClass.MEASUREMENT,
         multiplier=multiplier,
+        optional=optional,
+        inactive_phase=inactive_phase,
     )
 
 
 # Existing field names and units validated on the physical P1.
 BASE_SENSORS = (
-    _sensor("power", "Total power (raw sign)", "W", SensorDeviceClass.POWER),
+    _sensor("power", "Total power", "W", SensorDeviceClass.POWER),
     *(
-        _sensor(f"power{i}", f"Phase {i} power (raw sign)", "W", SensorDeviceClass.POWER)
+        _sensor(f"power{i}", f"Phase {i} power", "W", SensorDeviceClass.POWER)
         for i in (1, 2, 3)
     ),
     *(
@@ -100,14 +107,9 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     coordinator: JackeryP1Coordinator = hass.data[DOMAIN][entry.entry_id]
-    # Base sensors are preserved for existing installs. Extra attributes become
-    # entities only if the device actually reports them.
-    descriptions = list(BASE_SENSORS)
-    seen = {description.key for description in descriptions}
-    for description in OPTIONAL_SENSORS:
-        if description.key in coordinator.data and description.key not in seen:
-            descriptions.append(description)
-            seen.add(description.key)
+    # Register all known fields so a later firmware response can populate them.
+    # Unreported fields remain unavailable and are disabled in the registry.
+    descriptions = (*BASE_SENSORS, *OPTIONAL_SENSORS)
     async_add_entities(JackeryP1Sensor(coordinator, entry, desc) for desc in descriptions)
 
 
@@ -120,6 +122,13 @@ class JackeryP1Sensor(CoordinatorEntity[JackeryP1Coordinator], SensorEntity):
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"{entry.unique_id}_{description.key}"
+        field = description.key
+        missing = field not in (coordinator.data or {})
+        inactive = field.endswith(("2", "3")) and field.startswith(("power", "volt", "curr")) and (coordinator.data or {}).get("volt" + field[-1], 0) == 0
+        if missing or inactive:
+            self._attr_entity_registry_enabled_default = False
+        if missing:
+            self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.unique_id or entry.entry_id)},
             name="Jackery Smart Meter P1",
