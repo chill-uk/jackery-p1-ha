@@ -116,3 +116,16 @@ logbook:
 ```
 
 Replace the example IDs with your actual entity IDs. Logbook exclusion hides activity but still allows the entities to report current values; Recorder/history is managed separately. Optional electrical measurements remain **normal measurement entities** rather than diagnostic entities, even when disabled or unavailable because the firmware does not report them.
+
+## BLE command console (read-only)
+
+Use **Developer Tools → Actions → Jackery P1: Send read-only BLE command** to select command `1` (Wi-Fi scan), `22` (time zone), or `106` (device information). The action returns the decrypted response, with potentially sensitive fields redacted.
+
+```yaml
+action: jackery_p1.send_command
+data:
+  entry_id: YOUR_HOME_ASSISTANT_CONFIG_ENTRY_ID
+  command: 106
+```
+
+Only these three known read commands are accepted. Unknown codes such as `4`, Wi-Fi/MQTT provisioning (`2`), and time-zone writes (`3`) are rejected before BLE transmission. Experimental/unverified command execution is intentionally **not** enabled in this release.
