@@ -8,7 +8,7 @@ from .const import CONF_BLUETOOTH_KEY, DOMAIN
 from .coordinator import JackeryP1Coordinator
 from .protocol import READ_COMMANDS, decode_key
 
-PLATFORMS = ["sensor"]
+PLATFORMS = ["sensor", "binary_sensor"]
 SERVICE_SCHEMA = vol.Schema({vol.Required("entry_id"): cv.string})
 SENSITIVE = ("password", "passwd", "token", "secret", "credential", "ssid", "wifi", "key", "mac", "ip")
 
