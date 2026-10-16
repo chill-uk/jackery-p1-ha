@@ -1,44 +1,79 @@
-# Jackery P1 — local Bluetooth for Home Assistant
+# Jackery P1 Smart Meter for Home Assistant
 
-Early v0.1.0 integration for the Jackery Smart Meter P1 Reader (model 4001).  
-Uses encrypted BLEs, validated against physical P1 hardware.  
-No cloud requests during polling.
+[![GitHub release](https://img.shields.io/github/release/chill-uk/jackery-p1-ha?include_prereleases=&sort=semver&color=blue)](https://github.com/chill-uk/jackery-p1-ha/releases/)
+[![issues - jackery-p1-ha](https://img.shields.io/github/issues/chill-uk/jackery-p1-ha)](https://github.com/chill-uk/jackery-p1-ha/issues)
+[![GH-code-size](https://img.shields.io/github/languages/code-size/chill-uk/jackery-p1-ha?color=red)](https://github.com/chill-uk/jackery-p1-ha)
+[![GH-last-commit](https://img.shields.io/github/last-commit/chill-uk/jackery-p1-ha?style=flat-square)](https://github.com/chill-uk/jackery-p1-ha/commits/main)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![Validation](https://github.com/chill-uk/jackery-p1-ha/actions/workflows/validate.yml/badge.svg)](https://github.com/chill-uk/jackery-p1-ha/actions/workflows/validate.yml)
+![GitHub Downloads](https://img.shields.io/github/downloads/chill-uk/jackery-p1-ha/total)
 
-## Installation
-Copy `custom_components/jackery_p1` to your HA `config/custom_components/` folder, restart, and add "Jackery P1 (Local Bluetooth)" from Devices & services.  
+A local Bluetooth Home Assistant custom integration for the **Jackery Smart Meter P1 Reader** (model 4001). It reads encrypted BLE measurements directly from the meter using a device-specific key.
 
-Enter the Base64 BLE key previously retrieved for your own device. Keep it private.  
-OR user your Jackery login details.  
+Telemetry polling **does not use the Jackery cloud API**. Optionally, a one-time Jackery account sign-in can retrieve the device's Bluetooth key during setup.
+
+> [!IMPORTANT]
+> This is an unofficial community integration. It is not affiliated with,
+> endorsed by, connected with, or supported by Jackery.
+
+> [!NOTE]
+> The integration has been tested on a real P1. Interpretation of signed power and some optional measurement units is still being validated against independent DSMR readings. The extended shared accessory model does not guarantee that every field is transmitted by P1 firmware.
+
+# Installation
+
+### HACS installation
+
+The quickest way to install this integration is via [HACS](https://github.com/hacs/integration) by clicking the button below:
+
+[![Add to HACS via My Home Assistant](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=chill-uk&repository=jackery-p1-ha&category=integration)
+
+1. Click the button above to add this repository to HACS as a custom integration.
+2. Install **Jackery P1 (Local Bluetooth)** from HACS.
+3. Restart Home Assistant.
+4. Go to **Settings → Devices & services → Add integration**.
+5. Select **Jackery P1 (Local Bluetooth)**.
+6. Choose **Jackery account** for one-time key retrieval or **Existing Bluetooth key** if you already have its Base64-encoded key.
+
+HACS downloads the integration from the `jackery_p1.zip` asset of a tagged GitHub release. Until the first release is published, install manually or use a compatible development workflow.
+
+### Manual installation
+
+1. Download `jackery_p1.zip` from the [latest release](https://github.com/chill-uk/jackery-p1-ha/releases/latest), if available, and extract its contents into `<config>/custom_components/jackery_p1/`. The ZIP contents are the **integration files**, not an enclosing `jackery_p1` folder.
+2. Alternatively, copy the repository's `custom_components/jackery_p1/` directory into `<config>/custom_components/jackery_p1/`.
+3. Restart Home Assistant.
+4. Add **Jackery P1 (Local Bluetooth)** from **Settings → Devices & services**.
+
+## Bluetooth and authentication
+
+The P1 must be reachable by a local Bluetooth adapter or an **active, connectable Bluetooth proxy**. During setup:
+
+- **Jackery account:** Provide your account email, password and two-letter region code (default `NL`). The integration uses HTTPS to request the device's Base64 Bluetooth AES key from your bound P1. It stores only the BLE address and key, not your login password or session token.
+- **Existing Bluetooth key:** Provide the Base64 AES key yourself. Keep it private; never include it in issue reports or public logs.
+
+Once configured, electrical measurements are queried over local Bluetooth every five seconds.
 
 ## Sensors
-Total and per-phase raw signed active power (W), phase voltage (V), total and phase current (raw divided by 10 A).
 
-## Limitations
-Requires BLE range or a connectable Bluetooth proxy.  
-The sign of power and relationship between total and phase power need DSMR verification.  
-No cumulative energy readings are available.  
+- Total power, phase 1–3 power and phase 1–3 voltage.
+- Total current and phase 1–3 current (P1 current values are scaled by `0.1` to amperes).
+- Optional fields from the shared accessory model: general voltage, frequency, power factor, apparent power, reactive power, `enMask`, and secondary `l2*` measurements.
+- Diagnostics: Bluetooth connected, Bluetooth signal strength (RSSI, when advertised), and last successful telemetry update.
 
-## One-time Jackery account key retrieval
+Phase 2/3 readings are disabled by default on initial setup when the meter reports zero voltage on those phases. Optional fields are registered but **disabled/unavailable unless transmitted by the firmware**; no missing value is invented. Unknown unit scaling is deliberately exposed as raw values.
 
-During configuration, choose **Jackery account**, enter the email, password and two-letter region code (default `NL`).  
-The integration sends the encrypted login payload to Jackery over HTTPS and looks up your bound P1.  
+Existing sensor unique IDs remain unchanged when sensor names are updated; Home Assistant may preserve user-renamed entity names.
 
-Your password and API token are not saved in the Home Assistant config entry;  
-only the device-specific Base64 Bluetooth key and BLE address are stored.  
+## Read-only Bluetooth actions
 
-Normal telemetry polling is over local Bluetooth, without further cloud requests.
+The integration exposes these response-capable Home Assistant actions under **Developer Tools → Actions**:
 
-Alternatively, choose **Existing Bluetooth key** and enter it manually. (script coming later)
+| Action | Function |
+| --- | --- |
+| `jackery_p1.read_wifi` | Scan Wi-Fi networks |
+| `jackery_p1.read_timezone` | Read time-zone information |
+| `jackery_p1.read_device_info` | Read electrical telemetry |
 
-If the integration has already been configured, remove and re-add it to select a different setup method.
-
-## Additional telemetry fields
-
-The integration now recognises the extended accessory data model: general voltage, frequency, power factor, apparent and reactive power (including phase variants), `enMask`, and the `l2*` secondary channel fields. **Optional sensors are created only when a field appears in the initial device response.** Fields not transmitted by the P1 are not fabricated. Optional values are labelled `(raw)` because their units/scaling have not been confirmed on P1 hardware. Restart or reload the integration after a firmware change if it begins reporting new fields. The shared model is not evidence that every P1 firmware emits those values.
-
-## Read-only BLE actions
-
-Home Assistant exposes the response-capable actions `jackery_p1.read_wifi`, `jackery_p1.read_timezone`, and `jackery_p1.read_device_info`. These use the same BLE connection and key as the polling coordinator, and polling and manual reads are serialized. Each action requires the Home Assistant integration configuration `entry_id` (not the P1 MAC address):
+Each requires the Home Assistant **configuration entry ID**, not the meter's serial number or Bluetooth key:
 
 ```yaml
 action: jackery_p1.read_wifi
@@ -46,13 +81,24 @@ data:
   entry_id: YOUR_HOME_ASSISTANT_CONFIG_ENTRY_ID
 ```
 
-In **Developer Tools → Actions**, select the action and inspect its response. Wi-Fi and other credential-like fields are redacted in service responses. A time-out may mean the P1 firmware does not implement that particular command; it does not mean the device is disconnected. No BLE configuration write actions are exposed. The actions have not yet been tested against the actual P1 through Home Assistant.
+They use the same encrypted BLE transport and serialise access with normal polling. Credential-like response fields are redacted. No configuration-writing commands are exposed.
 
-## v0.2.0 sensor improvements
+## How it works
 
-- Renamed existing power sensors to **Total power** and **Phase N power** (unique IDs unchanged). Import/export sign has **not** yet been validated against DSMR.
-- Phase 2 and 3 entities are **disabled by default on first registration** when the first response indicates zero phase voltage. Existing entity-registry preferences are not overwritten; enable manually under the integration's entities if needed.
-- All extended fields in the decompiled accessory model are registered. If a field is missing from the firmware response, it is **disabled by default** and reports unavailable if enabled. A future firmware response can populate the sensor once enabled. Units for unverified fields remain raw.
-- Diagnostic entities: **Bluetooth signal strength** (RSSI from HA Bluetooth advertisements, may be unavailable when no advertisements are available), **Last successful update** (UTC timestamp of the latest successful telemetry query), and **Bluetooth connected** (whether the persistent client is currently connected).
+1. Discover or connect to the meter via Home Assistant Bluetooth.
+2. Decode the device-specific Base64 AES key.
+3. Establish a BLE connection and subscribe to notifications.
+4. Send the encrypted `READ_DEVICE_INFO` command (BLE message type 106) every five seconds.
+5. Verify and decrypt notifications, reassemble JSON frames, and update sensors.
+6. Reconnect if the BLE connection fails.
 
-Note: Bluetooth connected is a transport-state diagnostic, not proof the P1 is publishing new measurements. Existing renamed entities may retain user-customized names. Restart Home Assistant after updating; this version is not yet runtime-tested on your HA instance.
+## Limitations
+
+- Import/export sign and the distinction between `power` and `power1` require further verification.
+- No cumulative energy counter has been observed in the P1's BLE response.
+- Optional measurements may remain unavailable because the device firmware does not supply them.
+- The ZIP release workflow runs when a matching `v*` tag is pushed; committing workflow files alone does not publish a release.
+
+## License
+
+MIT
