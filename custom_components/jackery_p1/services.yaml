@@ -26,3 +26,25 @@ read_device_info:
       required: true
       selector:
         text:
+send_command:
+  name: Send read-only BLE command
+  description: Execute a verified read-only command and return decrypted JSON. Unknown and write commands are rejected.
+  fields:
+    entry_id:
+      name: Config entry ID
+      required: true
+      selector:
+        text:
+    command:
+      name: BLE command code
+      required: true
+      example: 106
+      selector:
+        select:
+          options:
+            - label: Read Wi-Fi (1)
+              value: "1"
+            - label: Read time zone (22)
+              value: "22"
+            - label: Read device information (106)
+              value: "106"
