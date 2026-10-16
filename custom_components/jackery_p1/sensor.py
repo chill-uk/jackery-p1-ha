@@ -121,8 +121,6 @@ class JackeryP1Sensor(CoordinatorEntity[JackeryP1Coordinator], SensorEntity):
         inactive = field.endswith(("2", "3")) and field.startswith(("power", "volt", "curr")) and (coordinator.data or {}).get("volt" + field[-1], 0) == 0
         if missing or inactive:
             self._attr_entity_registry_enabled_default = False
-        if missing:
-            self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.unique_id or entry.entry_id)},
             name="Jackery Smart Meter P1",
@@ -162,6 +160,7 @@ class P1RSSI(CoordinatorEntity[JackeryP1Coordinator], SensorEntity):
 class P1LastUpdate(CoordinatorEntity[JackeryP1Coordinator], SensorEntity):
     _attr_has_entity_name = True
     _attr_name = "Last successful update"
+    _attr_entity_registry_enabled_default = False
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
