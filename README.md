@@ -92,6 +92,10 @@ They use the same encrypted BLE transport and serialise access with normal polli
 5. Verify and decrypt notifications, reassemble JSON frames, and update sensors.
 6. Reconnect if the BLE connection fails.
 
+## Reverse engineering
+
+Technical findings from BLE, MQTT, UART, and PCB investigation are documented in [Reverse Engineering](docs/reverse-engineering.md). The notes distinguish verified observations from hypotheses and open questions. Sensitive credentials and identifiers are intentionally omitted.
+
 ## Limitations
 
 - Import/export sign and the distinction between `power` and `power1` require further verification.
