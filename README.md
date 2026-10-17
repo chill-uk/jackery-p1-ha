@@ -10,14 +10,14 @@
 
 A local Bluetooth Home Assistant custom integration for the **Jackery Smart Meter P1 Reader** (model 4001). It reads encrypted BLE measurements directly from the meter using a device-specific key.
 
-Telemetry polling **does not use the Jackery cloud API**. Optionally, a one-time Jackery account sign-in can retrieve the device's Bluetooth key during setup.
+Telemetry polling **does not use the Jackery cloud API**.
 
 > [!IMPORTANT]
-> This is an unofficial community integration. It is not affiliated with,
+> This is an unofficial integration. It is not affiliated with,
 > endorsed by, connected with, or supported by Jackery.
 
 > [!NOTE]
-> The integration has been tested on a real P1. Interpretation of signed power and some optional measurement units is still being validated against independent DSMR readings. The extended shared accessory model does not guarantee that every field is transmitted by P1 firmware.
+> This is a work in progress. Interpretation of signed power and some optional measurement units are still being validated.
 
 # Installation
 
@@ -34,7 +34,7 @@ The quickest way to install this integration is via [HACS](https://github.com/ha
 5. Select **Jackery P1 (Local Bluetooth)**.
 6. Choose **Jackery account** for one-time key retrieval or **Existing Bluetooth key** if you already have its Base64-encoded key.
 
-HACS downloads the integration from the `jackery_p1.zip` asset of a tagged GitHub release. Until the first release is published, install manually or use a compatible development workflow.
+HACS downloads the integration from the `jackery_p1.zip` asset of a tagged GitHub release. 
 
 ### Manual installation
 
@@ -45,10 +45,14 @@ HACS downloads the integration from the `jackery_p1.zip` asset of a tagged GitHu
 
 ## Bluetooth and authentication
 
-The P1 must be reachable by a local Bluetooth adapter or an **active, connectable Bluetooth proxy**. During setup:
+The P1 must be reachable by a local Bluetooth adapter or an **active, connectable Bluetooth proxy**.  
 
-- **Jackery account:** Provide your account email, password and two-letter region code (default `NL`). The integration uses HTTPS to request the device's Base64 Bluetooth AES key from your bound P1. It stores only the BLE address and key, not your login password or session token.
-- **Existing Bluetooth key:** Provide the Base64 AES key yourself. Keep it private; never include it in issue reports or public logs.
+Setup is possible via two methods:
+
+- **Jackery account:** At setup, you can provide your Jackery account details and two-letter region code (default `NL`).
+  - The integration requests the device's Base64 Bluetooth AES key from your bound P1.
+  - It stores only the BLE address and key, not your login password or session token.
+- **Existing Bluetooth key:** If you have already saved your device key (Base64 AES), you can skip the account sign in.
 
 Once configured, electrical measurements are queried over local Bluetooth every five seconds.
 
@@ -59,9 +63,7 @@ Once configured, electrical measurements are queried over local Bluetooth every 
 - Optional fields from the shared accessory model: general voltage, frequency, power factor, apparent power, reactive power, `enMask`, and secondary `l2*` measurements.
 - Diagnostics: Bluetooth connected, Bluetooth signal strength (RSSI, when advertised), and last successful telemetry update.
 
-Phase 2/3 readings are disabled by default on initial setup when the meter reports zero voltage on those phases. Optional fields are registered but **disabled/unavailable unless transmitted by the firmware**; no missing value is invented. Unknown unit scaling is deliberately exposed as raw values.
-
-Existing sensor unique IDs remain unchanged when sensor names are updated; Home Assistant may preserve user-renamed entity names.
+Phase 2/3 readings are disabled by default on initial setup when the meter reports zero voltage on those phases. Optional fields are registered but **disabled/unavailable unless transmitted by the firmware**. Unknown unit scaling is deliberately exposed as raw values.
 
 ## Read-only Bluetooth actions
 
