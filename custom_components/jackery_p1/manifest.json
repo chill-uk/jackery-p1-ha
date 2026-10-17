@@ -1,24 +1,24 @@
 {
   "domain": "jackery_p1",
   "name": "Jackery P1 (Local Bluetooth)",
-  "version": "0.2.0",
-  "integration_type": "device",
-  "config_flow": true,
-  "dependencies": [
-    "bluetooth"
-  ],
   "bluetooth": [
     {
       "service_uuid": "0000bdee-0000-1000-8000-00805f9b34fb"
     }
   ],
-  "requirements": [
-    "bleak-retry-connector>=3.5.0"
-  ],
-  "iot_class": "local_polling",
   "codeowners": [
     "@chill-uk"
   ],
+  "config_flow": true,
+  "dependencies": [
+    "bluetooth"
+  ],
   "documentation": "https://github.com/chill-uk/jackery-p1-ha",
-  "issue_tracker": "https://github.com/chill-uk/jackery-p1-ha/issues"
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/chill-uk/jackery-p1-ha/issues",
+  "requirements": [
+    "bleak-retry-connector>=3.5.0"
+  ],
+  "version": "0.2.0"
 }
