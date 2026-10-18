@@ -8,7 +8,7 @@
 
 A **local LAN and Bluetooth integration** for the **Jackery Smart Meter P1 Reader (model 4001)**. It reads measurements directly into Home Assistant without ongoing Jackery cloud telemetry.
 
-The P1 uses encrypted Bluetooth communication. During setup, you can either retrieve its device-specific Bluetooth key with a **one-time Jackery account sign-in** or provide a key you already have.
+Bluetooth communication is encrypted; LAN HTTP access uses the meter's existing Wi-Fi setup. Only Bluetooth mode needs a device-specific key.
 
 > [!IMPORTANT]
 > This is an **unofficial community integration**, not affiliated with or supported by Jackery.
@@ -26,17 +26,17 @@ Existing BLE entries continue to use Bluetooth automatically. For LAN mode the P
 
 ## Features
 
-- **Local electrical measurements** over encrypted BLE, polled approximately every **5 seconds**.
+- **Local electrical measurements** over LAN HTTP or encrypted BLE, polled approximately every **5 seconds**.
 - **Total and per-phase power, voltage and current** sensors, where supplied by the meter.
-- **Optional additional measurements** and Bluetooth diagnostics.
+- **Optional additional measurements**, LAN monitoring metrics and Bluetooth diagnostics where applicable.
 - **Read-only Home Assistant actions** for Wi-Fi scanning, time-zone information and meter readings.
 - **No ongoing Jackery cloud dependency for telemetry** after the Bluetooth key has been obtained.
 
 ## Requirements
 
 - A **Jackery Smart Meter P1 Reader (model 4001)**.
-- Home Assistant with a working Bluetooth adapter or an **active, connectable Bluetooth proxy** in range of the P1.
-- The device's **Base64-encoded Bluetooth AES key**, provided directly or retrieved during setup using a Jackery account with the P1 bound to it.
+- For **LAN**, the P1 must already be connected to Wi-Fi and reachable via HTTP from Home Assistant.\n- For **Bluetooth**, Home Assistant needs a working Bluetooth adapter or an **active, connectable Bluetooth proxy** in range of the P1.
+- For **Bluetooth only**, the device's **Base64-encoded AES key**, provided directly or retrieved during setup using a Jackery account with the P1 bound to it.
 
 ## Installation
 
