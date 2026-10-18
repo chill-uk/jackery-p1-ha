@@ -35,7 +35,8 @@ Existing BLE entries continue to use Bluetooth automatically. For LAN mode the P
 ## Requirements
 
 - A **Jackery Smart Meter P1 Reader (model 4001)**.
-- For **LAN**, the P1 must already be connected to Wi-Fi and reachable via HTTP from Home Assistant.\n- For **Bluetooth**, Home Assistant needs a working Bluetooth adapter or an **active, connectable Bluetooth proxy** in range of the P1.
+- For **LAN**, the P1 must already be connected to Wi-Fi and reachable via HTTP from Home Assistant. 
+- For **Bluetooth**, Home Assistant needs a working Bluetooth adapter or an **active, connectable Bluetooth proxy** in range of the P1.
 - For **Bluetooth only**, the device's **Base64-encoded AES key**, provided directly or retrieved during setup using a Jackery account with the P1 bound to it.
 
 ## Installation
