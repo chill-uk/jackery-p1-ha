@@ -6,6 +6,8 @@ import voluptuous as vol
 from .auth import DeviceListError, LoginError, fetch_bound_p1_keys
 from .const import CONF_BLUETOOTH_KEY, DOMAIN, SERVICE_UUID
 from .protocol import decode_key
+from .lan import normalize_host, read_json
+from aiohttp import ClientError
 
 class JackeryP1ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
@@ -24,6 +26,8 @@ class JackeryP1ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None):
         if user_input:
+            if user_input["method"] == "lan":
+                return await self.async_step_lan()
             if user_input["method"] == "account":
                 return await self.async_step_account()
             return await self.async_step_manual()
@@ -31,8 +35,37 @@ class JackeryP1ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Required("method", default="account"): vol.In({
                 "account": "Jackery account",
                 "manual": "Existing Bluetooth key",
+                "lan": "LAN (local HTTP)",
             })
         }))
+
+
+    async def async_step_lan(self, user_input=None):
+        """Configure local HTTP using the P1's Wi-Fi hostname or IP."""
+        errors = {}
+        if user_input:
+            try:
+                host = normalize_host(user_input["host"])
+                info = await read_json(self.hass, host, "/device_info")
+                if info.get("type") != 4001 or not info.get("sn"):
+                    errors["base"] = "not_p1"
+                else:
+                    serial = str(info["sn"])
+                    await self.async_set_unique_id(f"lan_{serial}")
+                    self._abort_if_unique_id_configured()
+                    return self.async_create_entry(
+                        title=f"Jackery P1 ({serial[-4:]})",
+                        data={"mode": "lan", "host": host},
+                    )
+            except ValueError:
+                errors["base"] = "invalid_host"
+            except (ClientError, TimeoutError, OSError):
+                errors["base"] = "cannot_connect"
+        return self.async_show_form(
+            step_id="lan",
+            data_schema=vol.Schema({vol.Required("host"): str}),
+            errors=errors,
+        )
 
     def _address_field(self):
         return {} if self._address else {vol.Required("address"): str}
@@ -45,7 +78,7 @@ class JackeryP1ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._abort_if_unique_id_configured()
         return self.async_create_entry(
             title="Jackery P1",
-            data={"address": address, CONF_BLUETOOTH_KEY: key},
+            data={"mode": "ble", "address": address, CONF_BLUETOOTH_KEY: key},
         )
 
     async def async_step_manual(self, user_input=None):
