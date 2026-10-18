@@ -12,7 +12,8 @@ from .coordinator import JackeryP1Coordinator
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEntitiesCallback) -> None:
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    add([P1Connection(coordinator, entry)])
+    if entry.data.get("mode", "ble") == "ble":
+        add([P1Connection(coordinator, entry)])
 
 class P1Connection(CoordinatorEntity[JackeryP1Coordinator], BinarySensorEntity):
     _attr_has_entity_name = True

@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Set up Jackery P1",
-        "description": "Choose how to obtain the device-specific Bluetooth key.",
+        "description": "Choose local LAN (HTTP) or Bluetooth. LAN requires Wi-Fi setup in the Jackery app; Bluetooth requires an account or an existing key.",
         "data": {
           "method": "Setup method"
         }
@@ -31,13 +31,23 @@
         "data": {
           "device": "Device"
         }
+      },
+      "lan": {
+        "title": "Connect over LAN",
+        "description": "Enter the P1's local IP address or hostname. The meter must already be connected to Wi-Fi.",
+        "data": {
+          "host": "P1 hostname or IP address"
+        }
       }
     },
     "error": {
       "invalid_key": "Invalid Base64 AES key",
       "cannot_authenticate": "Could not sign in to Jackery. Check credentials, region, and network access.",
       "cannot_get_devices": "Could not retrieve the Jackery device list.",
-      "no_p1_devices": "No bound Jackery P1 with a Bluetooth key was found."
+      "no_p1_devices": "No bound Jackery P1 with a Bluetooth key was found.",
+      "cannot_connect": "Cannot reach the P1 over local HTTP.",
+      "invalid_host": "Enter a valid HTTP hostname or IP address.",
+      "not_p1": "The HTTP endpoint did not identify as a Jackery P1."
     },
     "abort": {
       "already_configured": "Device already configured",

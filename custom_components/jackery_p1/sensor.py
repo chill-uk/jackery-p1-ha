@@ -64,6 +64,13 @@ BASE_SENSORS = (
 # returned them in testing. Treat unverified units/scaling as raw values.
 OPTIONAL_SENSORS = (
     _sensor("volt", "General voltage (raw)"),
+    _sensor("engy", "Imported energy (raw)"),
+    _sensor("engyo", "Exported energy (raw)"),
+    _sensor("sc", "Meter status (raw)"),
+    _sensor("uptime_s", "Device uptime", "s"),
+    _sensor("mem_usage_percent", "Memory usage", "%"),
+    _sensor("cpu_usage_percent", "CPU usage", "%"),
+    _sensor("mem_free_bytes", "Free memory", "B"),
     _sensor("freq", "Frequency (raw)"),
     _sensor("enMask", "Energy mask (raw)"),
     *(_sensor(f"fact{i}", f"Phase {i} power factor (raw)") for i in (1, 2, 3)),
@@ -104,7 +111,11 @@ async def async_setup_entry(
     # Register all known fields so a later firmware response can populate them.
     # Unreported fields remain unavailable and are disabled in the registry.
     descriptions = (*BASE_SENSORS, *OPTIONAL_SENSORS)
-    async_add_entities([*(JackeryP1Sensor(coordinator, entry, desc) for desc in descriptions), P1RSSI(coordinator, entry), P1LastUpdate(coordinator, entry)])
+    entities = [JackeryP1Sensor(coordinator, entry, desc) for desc in descriptions]
+    if entry.data.get("mode", "ble") == "ble":
+        entities.append(P1RSSI(coordinator, entry))
+    entities.append(P1LastUpdate(coordinator, entry))
+    async_add_entities(entities)
 
 
 class JackeryP1Sensor(CoordinatorEntity[JackeryP1Coordinator], SensorEntity):

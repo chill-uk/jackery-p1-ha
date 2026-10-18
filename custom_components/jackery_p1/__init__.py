@@ -6,6 +6,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from .const import CONF_BLUETOOTH_KEY, DOMAIN
 from .coordinator import JackeryP1Coordinator
+from .lan import JackeryP1LanCoordinator
 from .protocol import READ_COMMANDS, decode_key
 
 PLATFORMS = ["sensor", "binary_sensor"]
@@ -21,10 +22,13 @@ def _redact(value):
     return value
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    coordinator = JackeryP1Coordinator(hass, entry.data["address"], decode_key(entry.data[CONF_BLUETOOTH_KEY]))
+    if entry.data.get("mode", "ble") == "lan":
+        coordinator = JackeryP1LanCoordinator(hass, entry.data["host"])
+    else:
+        coordinator = JackeryP1Coordinator(hass, entry.data["address"], decode_key(entry.data[CONF_BLUETOOTH_KEY]))
     await coordinator.async_config_entry_first_refresh()
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-    for command in READ_COMMANDS:
+    for command in (READ_COMMANDS if entry.data.get("mode", "ble") == "ble" else {}):
         if not hass.services.has_service(DOMAIN, command):
             async def handler(call: ServiceCall, cmd: str = command):
                 instance = hass.data[DOMAIN].get(call.data["entry_id"])
@@ -36,7 +40,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     raise HomeAssistantError(f"BLE read failed: {type(exc).__name__}") from exc
                 return {"command": cmd, "response": _redact(result)}
             hass.services.async_register(DOMAIN, command, handler, schema=SERVICE_SCHEMA, supports_response=SupportsResponse.ONLY)
-    if not hass.services.has_service(DOMAIN, "send_command"):
+    if entry.data.get("mode", "ble") == "ble" and not hass.services.has_service(DOMAIN, "send_command"):
         async def send_command(call: ServiceCall) -> dict:
             command_code = call.data["command"]
             command_name = next(name for name, (_, number) in READ_COMMANDS.items() if number == command_code)
@@ -57,7 +61,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return False
     coordinator = hass.data[DOMAIN].pop(entry.entry_id)
     await coordinator.async_disconnect()
-    if not hass.data[DOMAIN]:
+    if not any(isinstance(item, JackeryP1Coordinator) for item in hass.data[DOMAIN].values()):
         for command in (*READ_COMMANDS, "send_command"):
             hass.services.async_remove(DOMAIN, command)
     return True

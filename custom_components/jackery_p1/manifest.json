@@ -1,6 +1,6 @@
 {
   "domain": "jackery_p1",
-  "name": "Jackery P1 (Local Bluetooth)",
+  "name": "Jackery P1 (Local LAN / Bluetooth)",
   "bluetooth": [
     {
       "service_uuid": "0000bdee-0000-1000-8000-00805f9b34fb"
