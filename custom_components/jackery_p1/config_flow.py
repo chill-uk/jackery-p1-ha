@@ -33,8 +33,8 @@ class JackeryP1ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_manual()
         return self.async_show_form(step_id="user", data_schema=vol.Schema({
             vol.Required("method", default="lan"): vol.In({
-                "account": "Jackery account",
-                "manual": "Existing Bluetooth key",
+                "account": "Jackery account (Bluetooth)",
+                "manual": "Existing key (Bluetooth)",
                 "lan": "LAN (local HTTP)",
             })
         }))
