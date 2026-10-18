@@ -6,7 +6,7 @@
 [![GitHub issues](https://img.shields.io/github/issues/chill-uk/jackery-p1-ha)](https://github.com/chill-uk/jackery-p1-ha/issues)
 [![GitHub downloads](https://img.shields.io/github/downloads/chill-uk/jackery-p1-ha/total)](https://github.com/chill-uk/jackery-p1-ha/releases/)
 
-A **local Bluetooth integration** for the **Jackery Smart Meter P1 Reader (model 4001)**. It reads power, voltage and current measurements directly into Home Assistant without using Jackery's cloud API for ongoing telemetry.
+A **local LAN and Bluetooth integration** for the **Jackery Smart Meter P1 Reader (model 4001)**. It reads measurements directly into Home Assistant without ongoing Jackery cloud telemetry.
 
 The P1 uses encrypted Bluetooth communication. During setup, you can either retrieve its device-specific Bluetooth key with a **one-time Jackery account sign-in** or provide a key you already have.
 
@@ -14,6 +14,15 @@ The P1 uses encrypted Bluetooth communication. During setup, you can either retr
 > This is an **unofficial community integration**, not affiliated with or supported by Jackery.
 >
 > The project is still under development. Import/export power sign conventions and some optional measurement units are being validated.
+
+## Connection modes
+
+| Mode | Setup | Normal operation |
+| --- | --- | --- |
+| **LAN (recommended)** | Connect the P1 to Wi-Fi with the official Jackery app. Enter its IP address or hostname in Home Assistant. | Local HTTP polling of `/device_info`, `/api/measurement` and `/api/monitor`; no Jackery credentials or BLE key required in Home Assistant. |
+| **Bluetooth** | Retrieve the device-specific key through a one-time Jackery account login or enter an existing Base64 key. | Local encrypted BLE polling; no ongoing cloud connection required. |
+
+Existing BLE entries continue to use Bluetooth automatically. For LAN mode the P1's local HTTP server must be reachable; availability over extended periods still needs device testing.
 
 ## Features
 
@@ -36,9 +45,9 @@ The P1 uses encrypted Bluetooth communication. During setup, you can either retr
 [![Add to HACS via My Home Assistant](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=chill-uk&repository=jackery-p1-ha&category=integration)
 
 1. Add this repository as a **custom integration** in [HACS](https://www.hacs.xyz/), using the button above or the repository URL.
-2. Install **Jackery P1 (Local Bluetooth)**.
+2. Install **Jackery P1 (Local LAN / Bluetooth)**.
 3. Restart Home Assistant.
-4. Go to **Settings → Devices & services → Add integration**, then select **Jackery P1 (Local Bluetooth)**.
+4. Go to **Settings → Devices & services → Add integration**, then select **Jackery P1 (Local LAN / Bluetooth)**.
 5. Follow the [configuration](#configuration) steps below.
 
 > [!NOTE]
@@ -49,14 +58,15 @@ The P1 uses encrypted Bluetooth communication. During setup, you can either retr
 1. Download `jackery_p1.zip` from the [latest release](https://github.com/chill-uk/jackery-p1-ha/releases/latest), if available, **or** copy the [`custom_components/jackery_p1`](custom_components/jackery_p1) directory from this repository.
 2. Place the integration files in `<config>/custom_components/jackery_p1/` in your Home Assistant configuration directory. If using the ZIP, its contents are the **integration files**, not a nested `jackery_p1` directory.
 3. Restart Home Assistant.
-4. Add **Jackery P1 (Local Bluetooth)** from **Settings → Devices & services**.
+4. Add **Jackery P1 (Local LAN / Bluetooth)** from **Settings → Devices & services**.
 
 ## Configuration
 
-Choose one of two setup methods:
+Choose **LAN (local HTTP)**, **Jackery account** or **Existing Bluetooth key** during setup:
 
 | Setup method | When to use it |
 | --- | --- |
+| **LAN (local HTTP)** | P1 Wi-Fi is already configured in the Jackery app. Enter the meter's local hostname or IP address. |
 | **Jackery account** | Your P1 is bound to your Jackery account and you want the integration to retrieve its Bluetooth key once. Provide your account credentials and two-letter region code (default: `NL`). |
 | **Existing Bluetooth key** | You already have the device's Base64 AES key and want to configure the integration without account sign-in. |
 
