@@ -10,8 +10,9 @@
     "@chill-uk"
   ],
   "config_flow": true,
-  "dependencies": [
-    "bluetooth"
+  "dependencies": [],
+  "after_dependencies": [
+    "bluetooth_adapters"
   ],
   "documentation": "https://github.com/chill-uk/jackery-p1-ha",
   "integration_type": "device",
