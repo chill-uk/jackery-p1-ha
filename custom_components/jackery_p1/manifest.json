@@ -1,6 +1,9 @@
 {
   "domain": "jackery_p1",
   "name": "Jackery P1 (Local LAN / Bluetooth)",
+  "after_dependencies": [
+    "bluetooth_adapters"
+  ],
   "bluetooth": [
     {
       "service_uuid": "0000bdee-0000-1000-8000-00805f9b34fb"
@@ -11,9 +14,6 @@
   ],
   "config_flow": true,
   "dependencies": [],
-  "after_dependencies": [
-    "bluetooth_adapters"
-  ],
   "documentation": "https://github.com/chill-uk/jackery-p1-ha",
   "integration_type": "device",
   "iot_class": "local_polling",
