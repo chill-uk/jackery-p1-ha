@@ -15,6 +15,13 @@ Bluetooth communication is encrypted; LAN HTTP access uses the meter's existing 
 >
 > The project is still under development. Import/export power sign conventions, cumulative energy counters and some optional measurement units are **not yet independently validated**. Do not use raw energy counters for billing or Home Assistant Energy Dashboard statistics without confirming their units and reset behaviour.
 
+## Known meter limitations
+
+The Jackery P1 does not currently provide every reading your smart meter might support. These are limitations of the information available from the Jackery device, not settings that can be enabled in Home Assistant.
+
+- **Some electricity readings are missing.** The integration can show the values Jackery makes available, but not separate day/night tariff totals, energy totals for each phase, or the complete original message from your electricity meter. Home Assistant cannot recreate missing readings.
+- **Gas readings are not available.** The Jackery P1 does not currently provide gas usage (or readings from other connected utility meters) through the local connections we support, so this integration cannot show gas consumption. We cannot rule out different behaviour in future firmware versions.
+
 ## Connection modes
 
 | Mode | Setup | Normal operation |
@@ -158,8 +165,6 @@ The command console permits only `1` (Wi-Fi scan), `22` (time zone) or `106` (de
 
 - **Power direction:** Import/export sign and the distinction between `power` and `power1` still require independent verification.
 - **Energy totals:** The currently observed BLE measurement response does not include a confirmed cumulative energy counter. Optional raw `engy` and `engyo` fields must not be assumed to be high-resolution kWh counters or used directly in Home Assistant's Energy Dashboard.
-- **OBIS coverage:** Only the measurements the P1 firmware reports over its exposed LAN/BLE interfaces are available. Separate tariff import/export registers, per-phase energy totals and raw complete DSMR telegrams are **not available through any currently documented integration endpoint**. Derived sensors do not restore missing registers.
-- **Gas / M-Bus readings:** No gas volume or other auxiliary M-Bus measurements are exposed by the fields currently identified in LAN/BLE responses. The integration therefore has **no gas sensor**. Whether the P1 firmware parses or exposes these readings through any other interface is **not verified**; this is not a claim that all firmware versions lack support.
 - **Device-dependent fields:** Optional measurements may not be supplied by P1 firmware and will remain disabled or unavailable.
 - **Transport:** The integration supports LAN HTTP and encrypted BLE; it does **not** currently consume MQTT telemetry or include an MQTT proxy.
 - **Setup:** Wi-Fi must first be provisioned through the Jackery app. LAN monitoring subsequently works locally; Bluetooth still requires a device-specific key acquired beforehand.
