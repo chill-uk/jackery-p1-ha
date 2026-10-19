@@ -144,6 +144,7 @@ The command console permits only `1` (Wi-Fi scan), `22` (time zone) or `106` (de
 
 - **Power direction:** Import/export sign and the distinction between `power` and `power1` still require independent verification.
 - **Energy totals:** The currently observed BLE measurement response does not include a cumulative energy counter.
+- **Gas / M-Bus readings:** No gas volume or other auxiliary M-Bus measurements are exposed by the fields currently identified in LAN/BLE responses. The integration therefore has **no gas sensor**. Whether the P1 firmware parses or exposes these readings through any other interface is **not verified**; this is not a claim that all firmware versions lack support.
 - **Device-dependent fields:** Optional measurements may not be supplied by P1 firmware and will remain disabled or unavailable.
 - **Transport:** The integration supports LAN HTTP and encrypted BLE; it does **not** currently consume MQTT telemetry or include an MQTT proxy.
 
