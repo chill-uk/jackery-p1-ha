@@ -38,6 +38,19 @@
         "data": {
           "host": "P1 hostname or IP address"
         }
+      },
+      "reconfigure": {
+        "title": "Change P1 connection mode",
+        "description": "Changing the connection retains the Home Assistant config entry and entity IDs. Ensure you connect to the same physical meter.",
+        "data": {"mode": "Connection mode"}
+      },
+      "reconfigure_lan": {
+        "title": "Update LAN connection",
+        "data": {"host": "P1 hostname or IP address"}
+      },
+      "reconfigure_ble": {
+        "title": "Update Bluetooth connection",
+        "data": {"address": "Bluetooth address", "bluetooth_key": "Bluetooth key (Base64)"}
       }
     },
     "error": {
@@ -47,13 +60,24 @@
       "no_p1_devices": "No bound Jackery P1 with a Bluetooth key was found.",
       "cannot_connect": "Cannot reach the P1 over local HTTP.",
       "invalid_host": "Enter a valid HTTP hostname or IP address.",
-      "not_p1": "The HTTP endpoint did not identify as a Jackery P1."
+      "not_p1": "The HTTP endpoint did not identify as a Jackery P1.",
+      "different_device": "The LAN device serial does not match this entry.",
+      "invalid_address": "Bluetooth address is required."
     },
     "abort": {
       "already_configured": "Device already configured",
       "not_supported": "Not a supported Jackery P1",
       "invalid_address": "Bluetooth address is required",
-      "no_p1_devices": "No Jackery P1 devices found"
+      "no_p1_devices": "No Jackery P1 devices found",
+      "reconfigure_successful": "Jackery P1 connection updated"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Jackery P1 polling",
+        "data": {"poll_interval": "Polling interval (seconds, 5–300)"}
+      }
     }
   }
 }

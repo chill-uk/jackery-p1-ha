@@ -14,6 +14,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
     coordinator = hass.data[DOMAIN][entry.entry_id]
     if entry.data.get("mode", "ble") == "ble":
         add([P1Connection(coordinator, entry)])
+    else:
+        add([P1LanConnection(coordinator, entry, endpoint) for endpoint in ("measurement", "monitor")])
 
 class P1Connection(CoordinatorEntity[JackeryP1Coordinator], BinarySensorEntity):
     _attr_has_entity_name = True
@@ -32,3 +34,27 @@ class P1Connection(CoordinatorEntity[JackeryP1Coordinator], BinarySensorEntity):
     @property
     def is_on(self) -> bool:
         return self.coordinator.is_connected
+
+
+class P1LanConnection(CoordinatorEntity, BinarySensorEntity):
+    """Report each LAN endpoint independently."""
+
+    _attr_has_entity_name = True
+    _attr_entity_registry_enabled_default = False
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, entry: ConfigEntry, endpoint: str) -> None:
+        super().__init__(coordinator)
+        self._endpoint = endpoint
+        self._attr_name = f"LAN {endpoint} available"
+        self._attr_unique_id = f"{entry.unique_id}_lan_{endpoint}_available"
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, entry.unique_id or entry.entry_id)})
+
+    @property
+    def available(self) -> bool:
+        return True
+
+    @property
+    def is_on(self) -> bool:
+        return bool(getattr(self.coordinator, f"{self._endpoint}_ok"))

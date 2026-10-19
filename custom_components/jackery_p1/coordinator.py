@@ -15,8 +15,8 @@ from .protocol import READ_COMMANDS, Reassembler, decrypt_frame, read_command_pa
 _LOGGER = logging.getLogger(__name__)
 
 class JackeryP1Coordinator(DataUpdateCoordinator[dict]):
-    def __init__(self, hass: HomeAssistant, address: str, key: bytes) -> None:
-        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=POLL_SECONDS))
+    def __init__(self, hass: HomeAssistant, address: str, key: bytes, poll_seconds: int = POLL_SECONDS) -> None:
+        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=poll_seconds))
         self.address = address
         self._key = key
         self._client: BleakClient | None = None

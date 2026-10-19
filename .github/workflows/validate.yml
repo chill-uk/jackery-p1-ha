@@ -28,7 +28,7 @@ jobs:
           python -m json.tool custom_components/jackery_p1/manifest.json > /dev/null
           python -m json.tool custom_components/jackery_p1/strings.json > /dev/null
           python -m json.tool hacs.json > /dev/null
-      - name: Run BLE protocol tests
+      - name: Run integration regression tests
         run: python -m pytest -q tests
 
   hacs:

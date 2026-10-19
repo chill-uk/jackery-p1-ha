@@ -4,7 +4,7 @@ from homeassistant import config_entries
 from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
 import voluptuous as vol
 from .auth import DeviceListError, LoginError, fetch_bound_p1_keys
-from .const import CONF_BLUETOOTH_KEY, DOMAIN, SERVICE_UUID
+from .const import CONF_BLUETOOTH_KEY, CONF_POLL_INTERVAL, DOMAIN, POLL_SECONDS, SERVICE_UUID
 from .protocol import decode_key
 from .lan import normalize_host, read_json
 from aiohttp import ClientError
@@ -15,6 +15,75 @@ class JackeryP1ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self):
         self._address = None
         self._devices = []
+
+    @staticmethod
+    def async_get_options_flow(config_entry):
+        return JackeryP1OptionsFlow()
+
+    async def async_step_reconfigure(self, user_input=None):
+        """Change transport without replacing the config entry or entity IDs."""
+        entry = self._get_reconfigure_entry()
+        if user_input is not None:
+            if user_input["mode"] == "lan":
+                return await self.async_step_reconfigure_lan()
+            return await self.async_step_reconfigure_ble()
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=vol.Schema({vol.Required("mode", default=entry.data.get("mode", "ble")): vol.In({"lan": "LAN (HTTP)", "ble": "Bluetooth"})}),
+        )
+
+    async def async_step_reconfigure_lan(self, user_input=None):
+        entry = self._get_reconfigure_entry()
+        errors = {}
+        if user_input is not None:
+            try:
+                host = normalize_host(user_input["host"])
+                info = await read_json(self.hass, host, "/device_info")
+                if info.get("type") != 4001 or not info.get("sn"):
+                    errors["base"] = "not_p1"
+                elif entry.data.get("serial") and str(info["sn"]) != entry.data["serial"]:
+                    errors["base"] = "different_device"
+                else:
+                    return self.async_update_reload_and_abort(
+                        entry, data_updates={"mode": "lan", "host": host, "serial": str(info["sn"])}
+                    )
+            except ValueError:
+                errors["base"] = "invalid_host"
+            except (ClientError, TimeoutError, OSError):
+                errors["base"] = "cannot_connect"
+        return self.async_show_form(
+            step_id="reconfigure_lan",
+            data_schema=vol.Schema({vol.Required("host", default=entry.data.get("host", "")): str}),
+            errors=errors,
+        )
+
+    async def async_step_reconfigure_ble(self, user_input=None):
+        entry = self._get_reconfigure_entry()
+        errors = {}
+        if user_input is not None:
+            try:
+                address = user_input["address"].strip()
+                if not address:
+                    errors["base"] = "invalid_address"
+                    raise ValueError("Bluetooth address is required")
+                key = user_input[CONF_BLUETOOTH_KEY].strip()
+                decode_key(key)
+            except (ValueError, base64.binascii.Error):
+                if "base" not in errors:
+                    errors[CONF_BLUETOOTH_KEY] = "invalid_key"
+            else:
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data_updates={"mode": "ble", "address": address, CONF_BLUETOOTH_KEY: key},
+                )
+        return self.async_show_form(
+            step_id="reconfigure_ble",
+            data_schema=vol.Schema({
+                vol.Required("address", default=entry.data.get("address", "")): str,
+                vol.Required(CONF_BLUETOOTH_KEY): str,
+            }),
+            errors=errors,
+        )
 
     async def async_step_bluetooth(self, discovery_info: BluetoothServiceInfoBleak):
         if SERVICE_UUID not in (uuid.lower() for uuid in discovery_info.service_uuids):
@@ -55,7 +124,7 @@ class JackeryP1ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     self._abort_if_unique_id_configured()
                     return self.async_create_entry(
                         title=f"Jackery P1 ({serial[-4:]})",
-                        data={"mode": "lan", "host": host},
+                        data={"mode": "lan", "host": host, "serial": serial},
                     )
             except ValueError:
                 errors["base"] = "invalid_host"
@@ -136,3 +205,18 @@ class JackeryP1ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(step_id="select_device", data_schema=vol.Schema({
             vol.Required("device"): vol.In(choices)
         }))
+
+
+class JackeryP1OptionsFlow(config_entries.OptionsFlow):
+    """Allow adjusting polling without deleting a configured device."""
+
+    async def async_step_init(self, user_input=None):
+        if user_input is not None:
+            return self.async_create_entry(data={CONF_POLL_INTERVAL: user_input[CONF_POLL_INTERVAL]})
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema({
+                vol.Required(CONF_POLL_INTERVAL, default=self.config_entry.options.get(CONF_POLL_INTERVAL, POLL_SECONDS)):
+                    vol.All(vol.Coerce(int), vol.Range(min=5, max=300)),
+            }),
+        )
