@@ -73,7 +73,7 @@ Choose **LAN (local HTTP)**, **Jackery account** or **Existing Bluetooth key** d
 
 The integration stores the device's **Bluetooth address and AES key**, but **does not store your Jackery password or account session token**. Treat the key as sensitive and never include it in public logs or issue reports.
 
-Once configured, Home Assistant reads measurements **directly over Bluetooth**. The integration does not use the Jackery cloud API for periodic telemetry.
+Once configured, Home Assistant reads measurements **directly over the selected local transport** (LAN HTTP or encrypted Bluetooth). The integration does not use the Jackery cloud API for periodic telemetry.
 
 ## Entities
 
@@ -136,29 +136,16 @@ The command console permits only `1` (Wi-Fi scan), `22` (time zone) or `106` (de
 
 ## How it works
 
-1. Home Assistant discovers and connects to the P1 using Bluetooth.
-2. The integration authenticates its encrypted messages using the stored device-specific key.
-3. Approximately every five seconds, it requests measurements and processes decrypted notifications.
-4. Sensors update with the values actually returned; the integration reconnects if the BLE connection fails.
-
-For protocol framing, encryption and command details, see the [BLE protocol research](docs/ble-protocol.md).
+- **LAN mode:** After the official app has configured Wi-Fi, Home Assistant reads `/device_info` during setup and polls the meter's local HTTP measurement and monitor endpoints.
+- **Bluetooth mode:** Home Assistant connects using a supported Bluetooth adapter or active proxy, encrypts read-only requests with the stored device-specific key, and processes notification responses.
+- Both modes update sensors about every five seconds. Neither requires cloud access for routine telemetry; only optional Bluetooth key retrieval during setup uses a Jackery account.
 
 ## Limitations
 
 - **Power direction:** Import/export sign and the distinction between `power` and `power1` still require independent verification.
 - **Energy totals:** The currently observed BLE measurement response does not include a cumulative energy counter.
 - **Device-dependent fields:** Optional measurements may not be supplied by P1 firmware and will remain disabled or unavailable.
-- **Transport:** This integration uses BLE; it does **not** currently consume MQTT telemetry or offer a local MQTT proxy.
-
-## Reverse-engineering research
-
-The repository also documents investigations into the P1's firmware, hardware and cloud communication. These are **research notes**, not installation requirements or supported integration features.
-
-- [Reverse-engineering overview](docs/reverse-engineering.md) — ESP32-C3 hardware, UART logging, PCB tracing, TLS experiments and open questions.
-- [BLE protocol](docs/ble-protocol.md) — GATT characteristics, encrypted framing, commands and measurements.
-- [MQTT protocol](docs/mqtt-protocol.md) — observed topics, payloads, delta updates, reporting configuration and TLS limitations.
-
-Findings distinguish confirmed observations from hypotheses; examples are sanitized to avoid exposing device-specific credentials.
+- **Transport:** The integration supports LAN HTTP and encrypted BLE; it does **not** currently consume MQTT telemetry or include an MQTT proxy.
 
 ## License
 
