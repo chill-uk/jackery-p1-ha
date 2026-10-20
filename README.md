@@ -13,7 +13,14 @@ Bluetooth communication is encrypted; LAN HTTP access uses the meter's existing 
 > [!IMPORTANT]
 > This is an **unofficial community integration**, not affiliated with or supported by Jackery.
 >
-> The project is still under development. Import/export power sign conventions and some optional measurement units are being validated.
+> The project is still under development. Import/export power sign conventions, cumulative energy counters and some optional measurement units are **not yet independently validated**. Do not use raw energy counters for billing or Home Assistant Energy Dashboard statistics without confirming their units and reset behaviour.
+
+## Known meter limitations
+
+The Jackery P1 does not currently provide every reading your smart meter might support. These are limitations of the information available from the Jackery device, not settings that can be enabled in Home Assistant.
+
+- **Some electricity readings are missing.** The integration can show the values Jackery makes available, but not separate day/night tariff totals, energy totals for each phase, or the complete original message from your electricity meter. Home Assistant cannot recreate missing readings.
+- **Gas readings are not available.** The Jackery P1 does not currently provide gas usage (or readings from other connected utility meters) through the local connections we support, so this integration cannot show gas consumption. We cannot rule out different behaviour in future firmware versions.
 
 ## Connection modes
 
@@ -26,11 +33,13 @@ Existing BLE entries continue to use Bluetooth automatically. For LAN mode the P
 
 ## Features
 
-- **Local electrical measurements** over LAN HTTP or encrypted BLE, polled approximately every **5 seconds**.
+- **Local electrical measurements** over LAN HTTP or encrypted BLE; default polling interval **5 seconds**, configurable from 5–300 seconds.
 - **Total and per-phase power, voltage and current** sensors, where supplied by the meter.
 - **Optional additional measurements**, LAN monitoring metrics and Bluetooth diagnostics where applicable.
 - **Read-only Home Assistant actions** for Wi-Fi scanning, time-zone information and meter readings.
 - **No ongoing Jackery cloud dependency for telemetry** after the Bluetooth key has been obtained.
+- **Independent LAN endpoint handling:** electrical readings can continue updating when the monitoring endpoint fails, and vice versa.
+- **Reconfigure the connection** or move between LAN/BLE without deleting the Home Assistant configuration entry.
 
 ## Requirements
 
@@ -75,6 +84,13 @@ The integration stores the device's **Bluetooth address and AES key**, but **doe
 
 Once configured, Home Assistant reads measurements **directly over the selected local transport** (LAN HTTP or encrypted Bluetooth). The integration does not use the Jackery cloud API for periodic telemetry.
 
+### Changing the connection or polling interval
+
+- **Settings → Devices & services → Jackery P1 → Configure:** set the polling interval (5–300 seconds). The integration reloads when it changes.
+- **Settings → Devices & services → Jackery P1 → Reconfigure:** change LAN hostname/IP or switch transport between LAN and BLE. BLE requires an existing device-specific key; the account login is only offered during initial setup.
+
+Reconfiguration keeps the same Home Assistant config entry and existing sensor unique IDs, preserving entity history. **Verify that the new connection belongs to the same physical P1.** A serial-number mismatch is rejected when the existing entry contains a known serial; older BLE entries do not necessarily contain one. Setting up a second copy of the device separately can still create duplicate entries.
+
 ## Entities
 
 ### Electrical measurements
@@ -85,14 +101,19 @@ Once configured, Home Assistant reads measurements **directly over the selected 
 | Voltage | Phase 1–3 voltage |
 | Current | Total current and phase 1–3 current |
 | Optional fields | General voltage, frequency, power factor, apparent power, reactive power, `enMask`, and secondary `l2*` measurements |
+| Optional derived power | Grid import/export power calculated from the sign of the reported `power` value; **disabled by default**, because the sign convention is not fully validated |
 
-The integration scales P1 current values by **0.1** to convert them to amperes. Some units and signed-power conventions are still being verified.
+The integration scales P1 current values by **0.1** to convert them to amperes. Optional **Grid import power (assumed sign)** and **Grid export power (assumed sign)** use positive values as import and negative values as export; enable these entities only if that matches your meter's readings. They do not create additional OBIS measurements.
+
+`engy` and `engyo` remain **raw optional fields**, not cumulative kWh sensors: their units, availability and reset behaviour must be validated before assigning `total_increasing` statistics. The integration does not invent separate tariff or phase energy totals that the device does not expose.
 
 Phase 2/3 entities are disabled by default during initial setup if those phases report zero voltage. Other optional entities may be registered but **disabled or unavailable** if the firmware does not transmit the corresponding value; missing measurements are not invented. Unknown measurement scaling is exposed as raw values.
 
 ### Diagnostics and Logbook
 
-Available diagnostics include Bluetooth connection status, Bluetooth RSSI (when advertised), and the time of the last successful telemetry update.
+Available diagnostics include Bluetooth connection status, Bluetooth RSSI (when advertised), and the time of the last successful telemetry update. LAN mode also provides independent measurement/monitor endpoint availability, their last successful update timestamps, response durations and consecutive failure counters. New diagnostics are disabled by default.
+
+If one LAN endpoint fails, sensors reported only by that endpoint become unavailable while the other endpoint's sensors continue to update. If both endpoints fail, the coordinator reports an update failure. These diagnostics never include HTTP response bodies, Wi-Fi credentials or Bluetooth keys.
 
 **Bluetooth connected** and **Last successful update** are disabled by default for new installations, since frequent status/timestamp changes can clutter Home Assistant's Logbook. Existing entity-registry settings are preserved across upgrades.
 
@@ -138,15 +159,16 @@ The command console permits only `1` (Wi-Fi scan), `22` (time zone) or `106` (de
 
 - **LAN mode:** After the official app has configured Wi-Fi, Home Assistant reads `/device_info` during setup and polls the meter's local HTTP measurement and monitor endpoints.
 - **Bluetooth mode:** Home Assistant connects using a supported Bluetooth adapter or active proxy, encrypts read-only requests with the stored device-specific key, and processes notification responses.
-- Both modes update sensors about every five seconds. Neither requires cloud access for routine telemetry; only optional Bluetooth key retrieval during setup uses a Jackery account.
+- Both modes update sensors every five seconds by default, or at the configured interval. Neither requires cloud access for routine telemetry; only optional Bluetooth key retrieval during setup uses a Jackery account.
 
 ## Limitations
 
 - **Power direction:** Import/export sign and the distinction between `power` and `power1` still require independent verification.
-- **Energy totals:** The currently observed BLE measurement response does not include a cumulative energy counter.
-- **Gas / M-Bus readings:** No gas volume or other auxiliary M-Bus measurements are exposed by the fields currently identified in LAN/BLE responses. The integration therefore has **no gas sensor**. Whether the P1 firmware parses or exposes these readings through any other interface is **not verified**; this is not a claim that all firmware versions lack support.
+- **Energy totals:** The currently observed BLE measurement response does not include a confirmed cumulative energy counter. Optional raw `engy` and `engyo` fields must not be assumed to be high-resolution kWh counters or used directly in Home Assistant's Energy Dashboard.
 - **Device-dependent fields:** Optional measurements may not be supplied by P1 firmware and will remain disabled or unavailable.
 - **Transport:** The integration supports LAN HTTP and encrypted BLE; it does **not** currently consume MQTT telemetry or include an MQTT proxy.
+- **Setup:** Wi-Fi must first be provisioned through the Jackery app. LAN monitoring subsequently works locally; Bluetooth still requires a device-specific key acquired beforehand.
+- **Connection limitations:** The LAN API is unencrypted HTTP and should only be reachable on a trusted local network. The integration is read-only and does not provide Wi-Fi provisioning, firmware updates, MQTT configuration, factory-mode or UART controls.
 
 ## License
 

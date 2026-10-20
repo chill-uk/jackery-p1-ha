@@ -18,6 +18,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import JackeryP1Coordinator
+from .lan import JackeryP1LanCoordinator
+from .measurements import split_signed_power
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -112,8 +114,15 @@ async def async_setup_entry(
     # Unreported fields remain unavailable and are disabled in the registry.
     descriptions = (*BASE_SENSORS, *OPTIONAL_SENSORS)
     entities = [JackeryP1Sensor(coordinator, entry, desc) for desc in descriptions]
+    entities.extend(P1DirectionalPower(coordinator, entry, direction) for direction in ("import", "export"))
     if entry.data.get("mode", "ble") == "ble":
         entities.append(P1RSSI(coordinator, entry))
+    else:
+        entities.extend(P1LanDiagnostic(coordinator, entry, key) for key in (
+            "last_measurement_success", "last_monitor_success",
+            "measurement_response_ms", "monitor_response_ms",
+            "measurement_failures", "monitor_failures",
+        ))
     entities.append(P1LastUpdate(coordinator, entry))
     async_add_entities(entities)
 
@@ -183,3 +192,55 @@ class P1LastUpdate(CoordinatorEntity[JackeryP1Coordinator], SensorEntity):
     @property
     def native_value(self):
         return self.coordinator.last_success
+
+
+class P1DirectionalPower(CoordinatorEntity, SensorEntity):
+    """Optional derived directional power; sign convention is unverified."""
+
+    _attr_has_entity_name = True
+    _attr_entity_registry_enabled_default = False
+    _attr_device_class = SensorDeviceClass.POWER
+    _attr_native_unit_of_measurement = "W"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator, entry: ConfigEntry, direction: str) -> None:
+        super().__init__(coordinator)
+        self._direction = direction
+        self._attr_name = f"Grid {direction} power (assumed sign)"
+        self._attr_unique_id = f"{entry.unique_id}_grid_{direction}_power"
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, entry.unique_id or entry.entry_id)})
+
+    @property
+    def available(self) -> bool:
+        return super().available and split_signed_power((self.coordinator.data or {}).get("power")) is not None
+
+    @property
+    def native_value(self) -> float | None:
+        values = split_signed_power((self.coordinator.data or {}).get("power"))
+        return None if values is None else values[0 if self._direction == "import" else 1]
+
+
+class P1LanDiagnostic(CoordinatorEntity[JackeryP1LanCoordinator], SensorEntity):
+    """Per-endpoint diagnostics; remain readable during partial outages."""
+
+    _attr_has_entity_name = True
+    _attr_entity_registry_enabled_default = False
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: JackeryP1LanCoordinator, entry: ConfigEntry, key: str) -> None:
+        super().__init__(coordinator)
+        self._key = key
+        self._attr_unique_id = f"{entry.unique_id}_{key}"
+        self._attr_name = key.replace("_", " ").capitalize()
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, entry.unique_id or entry.entry_id)})
+        if key.startswith("last_"):
+            self._attr_device_class = SensorDeviceClass.TIMESTAMP
+        elif key.endswith("_ms"):
+            self._attr_native_unit_of_measurement = "ms"
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+        else:
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+
+    @property
+    def native_value(self):
+        return getattr(self.coordinator, self._key)

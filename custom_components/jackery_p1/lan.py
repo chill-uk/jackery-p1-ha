@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit
 
@@ -52,13 +53,21 @@ async def read_json(hass: HomeAssistant, base_url: str, path: str) -> dict:
 class JackeryP1LanCoordinator(DataUpdateCoordinator[dict]):
     """Poll local measurement and monitoring endpoints."""
 
-    def __init__(self, hass: HomeAssistant, host: str) -> None:
+    def __init__(self, hass: HomeAssistant, host: str, poll_seconds: int = POLL_SECONDS) -> None:
         super().__init__(
-            hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=POLL_SECONDS)
+            hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=poll_seconds)
         )
         self.base_url = normalize_host(host)
         self.device_info: dict = {}
         self.last_success: datetime | None = None
+        self.last_measurement_success: datetime | None = None
+        self.last_monitor_success: datetime | None = None
+        self.measurement_response_ms: int | None = None
+        self.monitor_response_ms: int | None = None
+        self.measurement_failures = 0
+        self.monitor_failures = 0
+        self.measurement_ok = False
+        self.monitor_ok = False
 
     @property
     def is_connected(self) -> bool:
@@ -74,13 +83,33 @@ class JackeryP1LanCoordinator(DataUpdateCoordinator[dict]):
                 if info.get("type") != 4001:
                     raise ValueError("HTTP server is not a Jackery P1")
                 self.device_info = info
-            measurement = await read_json(self.hass, self.base_url, "/api/measurement")
-            monitor = await read_json(self.hass, self.base_url, "/api/monitor")
-            result = {**measurement, **monitor}
-            self.last_success = datetime.now(timezone.utc)
-            return result
         except (ClientError, TimeoutError, ValueError) as err:
-            raise UpdateFailed(f"P1 LAN query failed: {type(err).__name__}") from err
+            raise UpdateFailed(f"P1 identity query failed: {type(err).__name__}") from err
+
+        result: dict = {}
+        for endpoint, path in (
+            ("measurement", "/api/measurement"),
+            ("monitor", "/api/monitor"),
+        ):
+            started = time.monotonic()
+            try:
+                payload = await read_json(self.hass, self.base_url, path)
+            except (ClientError, TimeoutError, ValueError, OSError) as err:
+                setattr(self, f"{endpoint}_ok", False)
+                setattr(self, f"{endpoint}_failures", getattr(self, f"{endpoint}_failures") + 1)
+                _LOGGER.debug("P1 %s unavailable: %s", endpoint, type(err).__name__)
+            else:
+                now = datetime.now(timezone.utc)
+                result.update(payload)
+                setattr(self, f"{endpoint}_ok", True)
+                setattr(self, f"last_{endpoint}_success", now)
+                setattr(self, f"{endpoint}_response_ms", round((time.monotonic() - started) * 1000))
+                setattr(self, f"{endpoint}_failures", 0)
+                self.last_success = now
+
+        if not (self.measurement_ok or self.monitor_ok):
+            raise UpdateFailed("P1 measurement and monitor endpoints unavailable")
+        return result
 
     async def async_disconnect(self) -> None:
         """HTTP connections are managed by Home Assistant's shared session."""

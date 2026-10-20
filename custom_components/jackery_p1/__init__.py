@@ -5,7 +5,7 @@ from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.setup import async_setup_component
 from homeassistant.helpers import config_validation as cv
-from .const import CONF_BLUETOOTH_KEY, DOMAIN
+from .const import CONF_BLUETOOTH_KEY, CONF_POLL_INTERVAL, DOMAIN, POLL_SECONDS
 from .coordinator import JackeryP1Coordinator
 from .lan import JackeryP1LanCoordinator
 from .protocol import READ_COMMANDS, decode_key
@@ -23,14 +23,16 @@ def _redact(value):
     return value
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    poll_seconds = entry.options.get(CONF_POLL_INTERVAL, POLL_SECONDS)
     if entry.data.get("mode", "ble") == "lan":
-        coordinator = JackeryP1LanCoordinator(hass, entry.data["host"])
+        coordinator = JackeryP1LanCoordinator(hass, entry.data["host"], poll_seconds)
     else:
         if not await async_setup_component(hass, "bluetooth_adapters", {}):
             raise ConfigEntryNotReady("Bluetooth adapter support is unavailable")
-        coordinator = JackeryP1Coordinator(hass, entry.data["address"], decode_key(entry.data[CONF_BLUETOOTH_KEY]))
+        coordinator = JackeryP1Coordinator(hass, entry.data["address"], decode_key(entry.data[CONF_BLUETOOTH_KEY]), poll_seconds)
     await coordinator.async_config_entry_first_refresh()
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    entry.async_on_unload(entry.add_update_listener(async_update_options))
     for command in (READ_COMMANDS if entry.data.get("mode", "ble") == "ble" else {}):
         if not hass.services.has_service(DOMAIN, command):
             async def handler(call: ServiceCall, cmd: str = command):
@@ -58,6 +60,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.services.async_register(DOMAIN, "send_command", send_command, schema=SEND_COMMAND_SCHEMA, supports_response=SupportsResponse.ONLY)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
+
+async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Apply changed polling options by recreating the coordinator."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
